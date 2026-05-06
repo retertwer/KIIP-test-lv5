@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>វិញ្ញាសាសាកល្បង KIIP កម្រិត ៤ - មេរៀនទី ៥</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300;0,400;0,700;1,400&family=Noto+Sans+KR:wght@400;700&family=Noto+Sans+Khmer:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* កំណត់ Font ខ្មែរឱ្យមានភាពរឹងមាំ និងមានជម្រើសបម្រុង (Fallback) */
+        :root {
+            --font-khmer: 'Kantumruy Pro', 'Noto Sans Khmer', 'Leelawadee UI', 'Segoe UI', 'Khmer OS Battambang', sans-serif;
+            --font-korean: 'Noto Sans KR', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-khmer);
+            background-color: #f0f2f5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .korean { font-family: var(--font-korean); }
+        .khmer { font-family: var(--font-khmer); }
+
+        /* បង្កើនភាពច្បាស់នៃអក្សរខ្មែរ */
+        .khmer-bold { font-weight: 700; }
+        
+        .btn-option {
+            transition: all 0.2s ease;
+            border: 2px solid #e5e7eb;
+        }
+        .btn-option:hover:not(:disabled) {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .correct {
+            background-color: #d1fae5 !important;
+            border-color: #10b981 !important;
+            color: #065f46 !important;
+        }
+        .wrong {
+            background-color: #fee2e2 !important;
+            border-color: #ef4444 !important;
+            color: #991b1b !important;
+        }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .hidden-option { opacity: 0.3; pointer-events: none; }
+        
+        /* កំណត់ឱ្យអក្សរខ្មែរធំជាងមុនបន្តិចដើម្បីងាយអាន */
+        .text-khmer-sm { font-size: 0.875rem; line-height: 1.5; }
+        .text-khmer-base { font-size: 1rem; line-height: 1.6; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen pb-10">
+
+    <div id="app" class="max-w-2xl mx-auto px-4 pt-6">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-sm p-4 mb-6 border border-slate-200">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full khmer" id="category-label">មេរៀនទី ៥</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-500 khmer">ពិន្ទុ: <span id="current-score" class="font-bold text-slate-800">0</span></span>
+                    <div class="w-32 bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            <h1 class="text-lg font-bold text-slate-800 korean">KIIP 4 (중간평가) - 05과 소비와 절약</h1>
+        </div>
+
+        <!-- Quiz Container -->
+        <div id="quiz-container">
+            <!-- Question Card -->
+            <div class="bg-white rounded-2xl shadow-md p-6 mb-4 relative overflow-hidden border border-slate-100">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="text-slate-400 font-bold text-xl">#<span id="q-number">1</span></span>
+                    <button id="tts-btn" class="bg-slate-100 hover:bg-blue-100 text-slate-600 p-3 rounded-full transition-colors" title="ចុចដើម្បីស្ដាប់">
+                        <span id="tts-icon">🔈</span>
+                    </button>
+                </div>
+
+                <div id="reading-text-box" class="hidden mb-4 p-4 bg-slate-50 border-l-4 border-blue-400 rounded-r-lg text-sm leading-relaxed korean">
+                    <!-- Reading text goes here -->
+                </div>
+
+                <h2 id="question-text" class="text-xl font-bold text-slate-900 mb-6 leading-snug korean">
+                    កំពុងទាញយកសំណួរ...
+                </h2>
+
+                <!-- ប្រអប់បកប្រែសំណួរ - បង្កើនភាពច្បាស់នៃអក្សរ -->
+                <div id="question-translation" class="hidden mb-6 p-4 bg-amber-50 text-amber-900 rounded-xl text-sm border border-amber-100 khmer leading-relaxed">
+                    <!-- Translation goes here -->
+                </div>
+
+                <!-- Options -->
+                <div id="options-grid" class="grid grid-cols-1 gap-3">
+                    <!-- Options buttons -->
+                </div>
+
+                <!-- Power-ups Bar -->
+                <div id="power-ups" class="flex gap-2 mt-8 border-t pt-6">
+                    <button onclick="usePowerUp('translate-q')" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all">
+                        <span class="text-xl">🔍</span>
+                        <span class="text-[10px] font-bold text-amber-800 khmer">បកប្រែសំណួរ</span>
+                    </button>
+                    <button onclick="usePowerUp('fifty-fifty')" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-all">
+                        <span class="text-xl">✂️</span>
+                        <span class="text-[10px] font-bold text-purple-800 khmer">កាត់ ៥០/៥០</span>
+                    </button>
+                    <button onclick="usePowerUp('translate-a')" class="flex-1 flex flex-col items-center gap-1 p-2 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-200 transition-all">
+                        <span class="text-xl">📝</span>
+                        <span class="text-[10px] font-bold text-teal-800 khmer">បកប្រែចម្លើយ</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Feedback / Explanation -->
+            <div id="explanation-box" class="hidden fade-in space-y-4">
+                <div class="bg-white rounded-2xl shadow-md p-6 border-l-4 border-green-500 border border-slate-100">
+                    <h3 class="font-bold text-slate-900 mb-3 khmer text-lg">💡 ការពន្យល់លម្អិត៖</h3>
+                    <p id="explanation-text" class="text-slate-700 text-sm khmer leading-relaxed mb-6"></p>
+                    
+                    <div class="mt-6">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 khmer">បំបែកពាក្យសព្ទ (Vocabulary)</h4>
+                        <div id="vocab-list" class="grid grid-cols-1 gap-2">
+                            <!-- Vocab items -->
+                        </div>
+                    </div>
+                </div>
+
+                <button id="next-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-95 khmer text-lg">
+                    បន្តទៅសំណួរបន្ទាប់ ➔
+                </button>
+            </div>
+        </div>
+
+        <!-- Result Screen -->
+        <div id="result-screen" class="hidden fade-in text-center py-10">
+            <div class="bg-white rounded-3xl shadow-xl p-8 mb-6 border border-slate-100">
+                <div class="text-6xl mb-4">🎉</div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-2 khmer">បញ្ចប់ការសាកល្បង!</h2>
+                <p class="text-slate-600 mb-6 khmer">អ្នកសម្រេចបានលទ្ធផលយ៉ាងល្អប្រសើរ។</p>
+                
+                <div class="flex justify-around mb-8">
+                    <div class="text-center">
+                        <p class="text-sm text-slate-400 khmer">ពិន្ទុសរុប</p>
+                        <p class="text-4xl font-black text-blue-600" id="final-score">0</p>
+                    </div>
+                    <div class="text-center border-l border-slate-100 pl-8">
+                        <p class="text-sm text-slate-400 khmer">ត្រឹមត្រូវ</p>
+                        <p class="text-4xl font-black text-green-500" id="correct-count">0/15</p>
+                    </div>
+                </div>
+
+                <button onclick="startReview()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-2xl transition-all mb-3 khmer text-lg">
+                    🔎 ឆែកមើលចម្លើយឡើងវិញ
+                </button>
+                <button onclick="location.reload()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-4 rounded-2xl transition-all khmer text-lg">
+                    🔄 ធ្វើតេស្តម្ដងទៀត
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Data ---
+        const questions = [
+            {
+                category: "ពាក្យសព្ទ និងវេយ្យាករណ៍",
+                question: "다음 중 지출을 줄이기 위해 가장 필요한 습관은 무엇입니까?",
+                questionKhmer: "តើទម្លាប់មួយណាដែលចាំបាច់បំផុតដើម្បីកាត់បន្ថយការចំណាយ?",
+                options: ["충동구매", "과소비", "절약", "할부 결제"],
+                optionsKhmer: ["ការទិញដោយអារម្មណ៍ជ្រួលច្របល់", "ការប្រើប្រាស់ខ្ជះខ្ជាយ", "ការសន្សំសំចៃ", "ការបង់ប្រាក់រំលស់"],
+                answer: 2,
+                explanation: "ដើម្បីកាត់បន្ថយការចំណាយ (지출을 줄이다) យើងត្រូវមានទម្លាប់ '절약' (ការសន្សំសំចៃ/កាត់បន្ថយការចាយវាយដែលមិនចាំបាច់)។",
+                vocab: [
+                    { word: "지출", meaning: "ការចំណាយ" },
+                    { word: "줄이다", meaning: "កាត់បន្ថយ" },
+                    { word: "습관", meaning: "ទម្លាប់" },
+                    { word: "절약", meaning: "ការសន្សំសំចៃ" }
+                ]
+            },
+            {
+                category: "ពាក្យសព្ទ និងវេយ្យាករណ៍",
+                question: "물건을 사기 전에 미리 (      )을/를 작성하면 충동구매를 막을 수 있습니다.",
+                questionKhmer: "ប្រសិនបើអ្នកសរសេរ (      ) ទុកមុនពេលទិញទំនិញ អ្នកអាចរារាំងការទិញដោយអារម្មណ៍ជ្រួលច្របល់បាន។",
+                options: ["영수증", "쇼핑 목록", "가계부", "계약서"],
+                optionsKhmer: ["វិក្កយបត្រ", "បញ្ជីទិញទំនិញ", "សៀវភៅកត់ត្រាការចំណាយគ្រួសារ", "កិច្ចសន្យា"],
+                answer: 1,
+                explanation: "ការសរសេរ '쇼핑 목록' (Shopping list) ជួយឱ្យយើងទិញតែអ្វីដែលត្រូវការ និងជៀសវាងការទិញរបស់ដែលមិនបានគ្រោងទុក (충동구매)។",
+                vocab: [
+                    { word: "미리", meaning: "ទុកមុន/ជាមុន" },
+                    { word: "작성하다", meaning: "សរសេរ/រៀបចំ" },
+                    { word: "막다", meaning: "រារាំង/ការពារ" }
+                ]
+            },
+            {
+                category: "ពាក្យសព្ទ និងវេយ្យាករណ៍",
+                question: "가계부를 쓰면 수입과 지출을 한눈에 (      ) 수 있어서 경제적입니다.",
+                questionKhmer: "ប្រសិនបើសរសេរសៀវភៅចំណូលចំណាយ អ្នកអាច (      ) ចំណូលនិងចំណាយបានយ៉ាងងាយស្រួល ដែលវាពិតជាសន្សំសំចៃ។",
+                options: ["파악할", "저축할", "대출할", "낭비할"],
+                optionsKhmer: ["ស្វែងយល់/ដឹងច្បាស់", "សន្សំប្រាក់", "ខ្ចីប្រាក់", "ខ្ជះខ្ជាយ"],
+                answer: 0,
+                explanation: "សៀវភៅកត់ត្រាការចំណាយគ្រួសារ (가계부) ជួយឱ្យយើង '파악하다' (ស្វែងយល់/ដឹងច្បាស់) ពីស្ថានភាពហិរញ្ញវត្ថុរបស់យើង។",
+                vocab: [
+                    { word: "수입", meaning: "ចំណូល" },
+                    { word: "한눈에", meaning: "ត្រឹមមួយភ្នែក/យ៉ាងងាយស្រួល" },
+                    { word: "경제적", meaning: "សន្សំសំចៃ/ទាក់ទងនឹងសេដ្ឋកិច្ច" }
+                ]
+            },
+            {
+                category: "ពាក្យសព្ទ និងវេយ្យាករណ៍",
+                question: "다음 중 '과소비'와 의미가 반대되는 단어는 무엇입니까?",
+                questionKhmer: "តើពាក្យមួយណាដែលមានន័យផ្ទុយនឹងពាក្យ '과소비' (ការប្រើប្រាស់ខ្ជះខ្ជាយ)?",
+                options: ["낭비", "절약", "충동구매", "지출"],
+                optionsKhmer: ["ខ្ជះខ្ជាយ", "សន្សំសំចៃ", "ទិញដោយជ្រួលច្របល់", "ការចំណាយ"],
+                answer: 1,
+                explanation: "과소비 (Spending excessively) មានន័យផ្ទុយនឹង 절약 (Saving/Frugality)។",
+                vocab: [
+                    { word: "반대", meaning: "ផ្ទុយ" },
+                    { word: "단어", meaning: "ពាក្យ" }
+                ]
+            },
+            {
+                category: "ពាក្យសព្ទ និងវេយ្យាករណ៍",
+                question: "요즘 물가가 너무 (      ) 생활비가 부족합니다.",
+                questionKhmer: "សព្វថ្ងៃនេះ ដោយសារតែទំនិញ (      ) ពេក ទើបធ្វើឱ្យខ្វះខាតលុយសម្រាប់ចំណាយប្រចាំថ្ងៃ។",
+                options: ["올라서", "내려서", "똑같아서", "싸서"],
+                optionsKhmer: ["ឡើងថ្លៃ", "ចុះថ្លៃ", "ដូចដើម", "ថោក"],
+                answer: 0,
+                explanation: "នៅពេល '물가' (តម្លៃទំនិញ) '오르다' (ឡើងថ្លៃ) វានឹងធ្វើឱ្យយើងខ្វះខាតលុយចាយវាយ (생활비가 부족하다)។",
+                vocab: [
+                    { word: "물가", meaning: "តម្លៃទំនិញ/សន្ទស្សន៍តម្លៃ" },
+                    { word: "부족하다", meaning: "ខ្វះខាត" }
+                ]
+            },
+            {
+                category: "ពាក្យសព្ទ និងវេយ្យាករណ៍",
+                question: "백화점에서 물건을 살 때 할부로 (      ) 하면 이자가 발생할 수 있습니다.",
+                questionKhmer: "នៅពេលទិញទំនិញនៅផ្សារទំនើប ប្រសិនបើ (      ) ជាការបង់រំលស់ វាអាចនឹងមានការកើតឡើងនូវការប្រាក់។",
+                options: ["결제", "입금", "송금", "환전"],
+                optionsKhmer: ["ការទូទាត់ប្រាក់", "ការដាក់ប្រាក់ចូល", "ការផ្ញើប្រាក់", "ការដូរប្រាក់"],
+                answer: 0,
+                explanation: "할부로 결제하다 មានន័យថា ទូទាត់ប្រាក់ដោយការបង់រំលស់។",
+                vocab: [
+                    { word: "할부", meaning: "ការបង់រំលស់" },
+                    { word: "이자", meaning: "ការប្រាក់" },
+                    { word: "발생하다", meaning: "កើតឡើង" }
+                ]
+            },
+            {
+                category: "ពាក្យសព្ទ និងវេយ្យាករណ៍",
+                question: "남들이 산다고 해서 무작정 따라 사는 것은 (      ) 행동입니다.",
+                questionKhmer: "ការទិញតាមគេតាមឯងដោយគ្មានគិតមុខក្រោយ គឺជាទង្វើ (      )។",
+                options: ["합리적인", "바람직한", "비합리적인", "꼼꼼한"],
+                optionsKhmer: ["ដែលសមហេតុផល", "ដែលគួរឱ្យសរសើរ", "ដែលមិនសមហេតុផល", "ដែលហ្មត់ចត់"],
+                answer: 2,
+                explanation: "ការទិញតាមគេ (따라 사다) ដោយមិនចាំបាច់ គឺជាការចាយវាយមិនសមហេតុផល (비합리적인 소비)។",
+                vocab: [
+                    { word: "무작정", meaning: "ដោយគ្មានផែនការ/ដោយផ្ដេសផ្ដាស" },
+                    { word: "따라 사다", meaning: "ទិញតាមគេ" },
+                    { word: "행동", meaning: "សកម្មភាព/ទង្វើ" }
+                ]
+            },
+            {
+                category: "ពាក្យសព្ទ និងវេយ្យាករណ៍",
+                question: "전자 제품을 살 때는 에너지 효율 (      )을/를 확인하는 것이 좋습니다.",
+                questionKhmer: "ពេលទិញគ្រឿងអគ្គិសនី វាជាការល្អប្រសិនបើអ្នកពិនិត្យមើល (      ) ប្រសិទ្ធភាពថាមពល។",
+                options: ["목록", "등급", "계획", "수입"],
+                optionsKhmer: ["បញ្ជី", "កម្រិត/ថ្នាក់", "ផែនការ", "ចំណូល"],
+                answer: 1,
+                explanation: "에너지 효율 등급 (Energy efficiency grade) ជួយឱ្យយើងសន្សំសំចៃអគ្គិសនី។",
+                vocab: [
+                    { word: "전자 제품", meaning: "គ្រឿងអគ្គិសនី" },
+                    { word: "효율", meaning: "ប្រសិទ្ធភាព" },
+                    { word: "확인하다", meaning: "ពិនិត្យមើល/ផ្ទៀងផ្ទាត់" }
+                ]
+            },
+            {
+                category: "ពាក្យសព្ទ និងវេយ្យាករណ៍",
+                question: "지갑에 돈이 있으면 자꾸 쓰게 되니까 (      )을/를 하는 습관을 길러야 합니다.",
+                questionKhmer: "ដោយសារតែមានលុយក្នុងកាបូបតែងតែចាយអស់ ដូច្នេះយើងត្រូវបណ្ដុះទម្លាប់ (      )។",
+                options: ["저축", "대출", "소비", "쇼핑"],
+                optionsKhmer: ["ការសន្សំប្រាក់", "ការខ្ចីប្រាក់", "ការប្រើប្រាស់", "ការទិញទំនិញ"],
+                answer: 0,
+                explanation: "저축 (Saving) គឺជាការដាក់ប្រាក់ទុកសម្រាប់ពេលអនាគត។",
+                vocab: [
+                    { word: "자꾸", meaning: "ជារឿយៗ/ដដែលៗ" },
+                    { word: "습관을 기르다", meaning: "បណ្ដុះទម្លាប់" }
+                ]
+            },
+            {
+                category: "ពាក្យសព្ទ និងវេយ្យាករណ៍",
+                question: "가격을 비교해 보고 (      ) 물건을 고르는 것이 현명한 소비입니다.",
+                questionKhmer: "ការប្រៀបធៀបតម្លៃ ហើយជ្រើសរើសទំនិញ (      ) គឺជាការប្រើប្រាស់ដ៏ឆ្លាតវៃ។",
+                options: ["비싼", "저렴한", "화려한", "브랜드"],
+                optionsKhmer: ["ថ្លៃ", "ថោក/សមរម្យ", "ឆើតឆាយ", "ម៉ាកល្បី"],
+                answer: 1,
+                explanation: "저렴하다 (Affordable/Cheap) មានន័យស្រដៀងនឹង 싸다។",
+                vocab: [
+                    { word: "비교하다", meaning: "ប្រៀបធៀប" },
+                    { word: "고르다", meaning: "ជ្រើសរើស" },
+                    { word: "현명하다", meaning: "ឆ្លាតវៃ" }
+                ]
+            },
+            {
+                category: "ការអានយល់ន័យ",
+                readingText: "저는 예전에는 스트레스를 받으면 백화점에 가서 충동구매를 자주 했습니다. 하지만 가계부를 쓰기 시작하면서 제 소비 습관이 비합리적이라는 것을 알게 되었습니다. 지금은 물건을 사기 전에 꼭 쇼핑 목록을 작성하고 가격을 비교해 봅니다. 덕분에 저축도 많이 할 수 있게 되었습니다.",
+                question: "이 글의 내용과 같은 것은 무엇입니까?",
+                questionKhmer: "តើខ្លឹមសារមួយណាដែលត្រូវនឹងអត្ថបទខាងលើ?",
+                options: [
+                    "이 사람은 지금도 충동구매를 자주 한다.",
+                    "가계부를 쓰는 것은 지출 관리에 도움이 안 된다.",
+                    "쇼핑 목록을 작성하는 습관이 생겼다.",
+                    "스트레스를 풀기 위해 저축을 포기했다."
+                ],
+                optionsKhmer: [
+                    "បុគ្គលនេះសព្វថ្ងៃនៅតែទិញឥវ៉ាន់តាមអារម្មណ៍ដដែល។",
+                    "ការសរសេរសៀវភៅចំណូលចំណាយមិនបានជួយអ្វីដល់ការគ្រប់គ្រងការចាយវាយទេ។",
+                    "គាត់បានបង្កើតទម្លាប់សរសេរបញ្ជីទិញទំនិញ។",
+                    "គាត់បានបោះបង់ការសន្សំដើម្បីរំសាយស្ត្រេស។"
+                ],
+                answer: 2,
+                explanation: "ក្នុងអត្ថបទបញ្ជាក់ថា '지금은 물건을 사기 전에 꼭 쇼핑 목록을 작성하고' (ឥឡូវនេះ មុនទិញអី ត្រូវតែសរសេរបញ្ជីទិញទំនិញ)។",
+                vocab: [
+                    { word: "예전에", meaning: "កាលពីមុន" },
+                    { word: "덕분에", meaning: "អរគុណចំពោះ/ដោយសារតែ..." },
+                    { word: "포기하다", meaning: "បោះបង់" }
+                ]
+            },
+            {
+                category: "ការអានយល់ន័យ",
+                readingText: "최근 물가가 계속 오르면서 생활비를 아끼려는 사람들이 늘고 있습니다. 유통 기한이 임박한 상품을 싸게 파는 가게를 이용하거나, 중고 거래 앱을 통해 필요한 물건을 저렴하게 구입하기도 합니다. 이러한 '짠테크' 열풍은 당분간 계속될 것으로 보입니다.",
+                question: "생활비를 아끼는 방법으로 언급되지 않은 것은?",
+                questionKhmer: "តើវិធីសន្សំសំចៃមួយណាដែល 'មិនបាន' លើកឡើងក្នុងអត្ថបទ?",
+                options: ["중고 물건 구입", "유통 기한 임박 상품 구매", "백화점 신상품 쇼핑", "중고 거래 앱 이용"],
+                optionsKhmer: ["ទិញរបស់ជជុះ", "ទិញទំនិញជិតហួសកំណត់", "ទិញរបស់ថ្មីៗនៅផ្សារទំនើប", "ប្រើកម្មវិធីទិញលក់របស់ជជុះ"],
+                answer: 2,
+                explanation: "អត្ថបទនិយាយពីការទិញរបស់ជជុះ និងរបស់ជិតហួសកំណត់ដើម្បីសន្សំ ប៉ុន្តែមិនបាននិយាយពីការទៅទិញរបស់ថ្មីនៅផ្សារទំនើប (백화점 신상품) នោះទេ។",
+                vocab: [
+                    { word: "아끼다", meaning: "សន្សំសំចៃ/ថែរក្សា" },
+                    { word: "유통 기한", meaning: "កាលបរិច្ឆេទហួសកំណត់" },
+                    { word: "임박하다", meaning: "ជិតដល់/ប្រកៀក" },
+                    { word: "짠테크", meaning: "ការសន្សំសំចៃយ៉ាងតឹងរ៉ឹង" }
+                ]
+            },
+            {
+                category: "វប្បធម៌ និងចំណេះដឹងសង្គមកូរ៉េ",
+                question: "한국의 전통적인 소비 문화 중 하나로, 물건을 아껴 쓰고 다시 쓰는 운동을 무엇이라고 합니까?",
+                questionKhmer: "តើចលនាសន្សំសំចៃ និងប្រើប្រាស់របស់ឡើងវិញរបស់កូរ៉េ ហៅថាអ្វី?",
+                options: ["아나바다 운동", "한류 열풍", "새마을 운동", "빨리빨리 문화"],
+                optionsKhmer: ["ចលនា អា-ណា-បា-ដា", "រលកវប្បធម៌កូរ៉េ", "ចលនាភូមិថ្មី", "វប្បធម៌ លឿនៗ"],
+                answer: 0,
+                explanation: "아나바다 តំណាងឱ្យ 아껴 쓰고(សន្សំ), 나눠 쓰고(ចែករំលែក), 바꿔 쓰고(ផ្លាស់ប្តូរ), 다시 쓰기(ប្រើឡើងវិញ)។",
+                vocab: [
+                    { word: "전통적", meaning: "បែបប្រពៃណី" },
+                    { word: "운동", meaning: "ចលនា/ការហាត់ប្រាណ" }
+                ]
+            },
+            {
+                category: "វប្បធម៌ និងចំណេះដឹងសង្គមកូរ៉េ",
+                question: "다음 중 한국의 문화 콘텐츠(드라마, K-Pop 등)가 세계적으로 인기를 끌고 있는 현상을 무엇이라고 합니까?",
+                questionKhmer: "តើបាតុភូតដែលផលិតផលវប្បធម៌កូរ៉េ (រឿងភាគ, K-Pop) ល្បីល្បាញពេញពិភពលោក ហៅថាអ្វី?",
+                options: ["먹방", "한류", "온돌", "김장"],
+                optionsKhmer: ["ការឡាយស៊ី", "រលកវប្បធម៌កូរ៉េ (Hallyu)", "ប្រព័ន្ធកម្ដៅឥដ្ឋ", "ការធ្វើគីមឈីរួមគ្នា"],
+                answer: 1,
+                explanation: "한류 (Hallyu/Korean Wave) គឺជាការរីកសាយភាយនៃវប្បធម៌កម្សាន្តកូរ៉េទៅកាន់ពិភពលោក។",
+                vocab: [
+                    { word: "현상", meaning: "បាតុភូត" },
+                    { word: "인기를 끌다", meaning: "ទាក់ទាញការចាប់អារម្មណ៍/ល្បី" }
+                ]
+            },
+            {
+                category: "វប្បធម៌ និងចំណេះដឹងសង្គមកូរ៉េ",
+                question: "한국에서 직장 동료와 식사를 한 후 각자 자기 것을 계산하는 문화를 무엇이라고 합니까?",
+                questionKhmer: "តើវប្បធម៌ដែលញ៉ាំបាយជាមួយមិត្តរួមការងារហើយ ចេញលុយរៀងៗខ្លួន ហៅថាអ្វី?",
+                options: ["더치페이", "회식", "한턱내기", "조의금"],
+                optionsKhmer: ["Dutch Pay (ចែកគ្នាចេញ)", "ការជួបជុំញ៉ាំអីក្នុងក្រុមហ៊ុន", "ការប៉ាវ", "ប្រាក់ចូលបុណ្យសព"],
+                answer: 0,
+                explanation: "더치페이 (Dutch Pay) គឺជាការទូទាត់ប្រាក់ដោយម្នាក់ៗចេញចំណែករបស់ខ្លួន។",
+                vocab: [
+                    { word: "각자", meaning: "ម្នាក់ៗ/រៀងៗខ្លួន" },
+                    { word: "계산하다", meaning: "គណនា/ទូទាត់ប្រាក់" }
+                ]
+            }
+        ];
+
+        // --- State Management ---
+        let currentIdx = 0;
+        let score = 0;
+        let userAnswers = [];
+        let isAnswered = false;
+        let activeAudio = null;
+        let powerUpUsed = { translateQ: false, fiftyFifty: false, translateA: false };
+
+        // --- Elements ---
+        const qNum = document.getElementById('q-number');
+        const qText = document.getElementById('question-text');
+        const qTrans = document.getElementById('question-translation');
+        const optionsGrid = document.getElementById('options-grid');
+        const readingBox = document.getElementById('reading-text-box');
+        const explBox = document.getElementById('explanation-box');
+        const explText = document.getElementById('explanation-text');
+        const vocabList = document.getElementById('vocab-list');
+        const nextBtn = document.getElementById('next-btn');
+        const progress = document.getElementById('progress-bar');
+        const scoreDisplay = document.getElementById('current-score');
+        const ttsBtn = document.getElementById('tts-btn');
+        const catLabel = document.getElementById('category-label');
+
+        // --- Core Functions ---
+        function loadQuestion(idx) {
+            isAnswered = false;
+            currentIdx = idx;
+            const q = questions[idx];
+            
+            // Reset UI
+            explBox.classList.add('hidden');
+            qTrans.classList.add('hidden');
+            qTrans.innerHTML = q.questionKhmer;
+            readingBox.classList.add('hidden');
+            qNum.innerText = idx + 1;
+            qText.innerText = q.question;
+            catLabel.innerText = q.category;
+            scoreDisplay.innerText = score;
+            progress.style.width = `${((idx) / questions.length) * 100}%`;
+            
+            if (q.readingText) {
+                readingBox.innerText = q.readingText;
+                readingBox.classList.remove('hidden');
+            }
+
+            // Options
+            optionsGrid.innerHTML = '';
+            q.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-option w-full p-4 rounded-xl text-left bg-white shadow-sm flex flex-col group active:scale-[0.98] transition-transform';
+                btn.innerHTML = `
+                    <div class="flex justify-between items-center w-full">
+                        <span class="korean text-slate-800 font-medium">${i + 1}. ${opt}</span>
+                        <span class="hidden check-icon text-xl"></span>
+                    </div>
+                    <span class="opt-khmer hidden mt-2 text-sm text-slate-500 khmer border-t pt-2 w-full">${q.optionsKhmer[i]}</span>
+                `;
+                btn.onclick = () => selectAnswer(i);
+                optionsGrid.appendChild(btn);
+            });
+
+            // Reset Power-ups
+            powerUpUsed = { translateQ: false, fiftyFifty: false, translateA: false };
+        }
+
+        function selectAnswer(choiceIdx) {
+            if (isAnswered) return;
+            isAnswered = true;
+            
+            const q = questions[currentIdx];
+            const correct = q.answer;
+            const btns = optionsGrid.children;
+
+            // Highlight answers
+            for (let i = 0; i < btns.length; i++) {
+                btns[i].disabled = true;
+                if (i === correct) {
+                    btns[i].classList.add('correct');
+                    btns[i].querySelector('.check-icon').innerText = '✅';
+                    btns[i].querySelector('.check-icon').classList.remove('hidden');
+                } else if (i === choiceIdx) {
+                    btns[i].classList.add('wrong');
+                    btns[i].querySelector('.check-icon').innerText = '❌';
+                    btns[i].querySelector('.check-icon').classList.remove('hidden');
+                }
+            }
+
+            if (choiceIdx === correct) score += 10;
+            userAnswers.push(choiceIdx);
+
+            showExplanation();
+        }
+
+        function showExplanation() {
+            const q = questions[currentIdx];
+            explBox.classList.remove('hidden');
+            qTrans.classList.remove('hidden'); // បង្ហាញការបកប្រែដោយស្វ័យប្រវត្តិ
+            explText.innerText = q.explanation;
+
+            // បង្ហាញការបកប្រែជម្រើសទាំងអស់
+            document.querySelectorAll('.opt-khmer').forEach(el => el.classList.remove('hidden'));
+
+            // បង្ហាញពាក្យសព្ទ
+            vocabList.innerHTML = '';
+            q.vocab.forEach(v => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200';
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <button onclick="speakText('${v.word}')" class="text-sm bg-white p-2 rounded-lg shadow-sm border border-slate-100 hover:bg-blue-50 transition-colors">🔈</button>
+                        <span class="korean font-bold text-blue-800 text-lg">${v.word}</span>
+                    </div>
+                    <span class="khmer text-slate-600 text-sm font-medium">${v.meaning}</span>
+                `;
+                vocabList.appendChild(div);
+            });
+
+            // រុញអេក្រង់ចុះក្រោម
+            setTimeout(() => {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }, 100);
+        }
+
+        function usePowerUp(type) {
+            if (isAnswered) return;
+            const q = questions[currentIdx];
+
+            if (type === 'translate-q') {
+                qTrans.classList.toggle('hidden');
+            } else if (type === 'fifty-fifty') {
+                if (powerUpUsed.fiftyFifty) return;
+                const correct = q.answer;
+                const btns = optionsGrid.children;
+                let indices = [0, 1, 2, 3].filter(i => i !== correct);
+                indices = indices.sort(() => Math.random() - 0.5);
+                
+                indices.slice(0, 2).forEach(idx => {
+                    btns[idx].classList.add('hidden-option');
+                });
+                powerUpUsed.fiftyFifty = true;
+            } else if (type === 'translate-a') {
+                document.querySelectorAll('.opt-khmer').forEach(el => el.classList.toggle('hidden'));
+            }
+        }
+
+        nextBtn.onclick = () => {
+            if (currentIdx < questions.length - 1) {
+                loadQuestion(currentIdx + 1);
+            } else {
+                showResults();
+            }
+        };
+
+        function showResults() {
+            document.getElementById('quiz-container').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('correct-count').innerText = `${score / 10}/${questions.length}`;
+            progress.style.width = '100%';
+        }
+
+        // --- TTS Engine ---
+        function speakText(text) {
+            if (activeAudio) {
+                activeAudio.pause();
+                activeAudio = null;
+                document.getElementById('tts-icon').innerText = '🔈';
+                return;
+            }
+
+            document.getElementById('tts-icon').innerText = '⏸';
+            const googleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=ko-KR&client=tw-ob&q=${encodeURIComponent(text)}`;
+            
+            const audio = new Audio(googleUrl);
+            activeAudio = audio;
+
+            audio.play().catch(() => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ko-KR';
+                utterance.onend = () => {
+                    document.getElementById('tts-icon').innerText = '🔈';
+                    activeAudio = null;
+                };
+                window.speechSynthesis.speak(utterance);
+            });
+
+            audio.onended = () => {
+                document.getElementById('tts-icon').innerText = '🔈';
+                activeAudio = null;
+            };
+        }
+
+        ttsBtn.onclick = () => {
+            const q = questions[currentIdx];
+            const fullText = (q.readingText ? q.readingText + ". " : "") + q.question;
+            speakText(fullText);
+        };
+
+        function startReview() {
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('quiz-container').classList.remove('hidden');
+            let reviewIdx = 0;
+            const loadReview = (idx) => {
+                loadQuestion(idx);
+                isAnswered = true;
+                const correct = questions[idx].answer;
+                const btns = optionsGrid.children;
+                btns[correct].classList.add('correct');
+                if (userAnswers[idx] !== undefined && userAnswers[idx] !== correct) {
+                   btns[userAnswers[idx]].classList.add('wrong');
+                }
+                showExplanation();
+            };
+            loadReview(0);
+            
+            nextBtn.onclick = () => {
+                reviewIdx++;
+                if (reviewIdx < questions.length) {
+                    loadReview(reviewIdx);
+                } else {
+                    location.reload();
+                }
+            };
+        }
+
+        window.onload = () => loadQuestion(0);
+    </script>
+</body>
+</html>
